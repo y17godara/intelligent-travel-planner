@@ -1,0 +1,87 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String?    @unique
+  username  String?    @unique
+  name      String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  
+  trips     Trip[]
+}
+
+model Trip {
+  id          String      @id @default(cuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title       String
+  destination String
+  description String?
+  days        Int
+  budget      String?
+  interests   String[]    @default([])
+  
+  generatedData Json?     // Stores raw itinerary JSON from AI
+  
+  dayPlans    DayPlan[]
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  @@index([userId])
+}
+
+model DayPlan {
+  id      String    @id @default(cuid())
+  tripId  String
+  trip    Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  
+  day     Int
+  title   String
+  
+  activities Activity[]
+  
+  @@index([tripId])
+}
+
+model Activity {
+  id          String    @id @default(cuid())
+  dayPlanId   String
+  dayPlan     DayPlan   @relation(fields: [dayPlanId], references: [id], onDelete: Cascade)
+  
+  place       String
+  description String
+  time        String
+  
+  location    Location?
+  
+  sequence    Int // Order in the day
+  
+  createdAt   DateTime  @default(now())
+  
+  @@index([dayPlanId])
+}
+
+model Location {
+  id        String    @id @default(cuid())
+  activityId String  @unique
+  activity  Activity  @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  
+  latitude  Float
+  longitude Float
+  address   String?
+  
+  @@index([activityId])
+}

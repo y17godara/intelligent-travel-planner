@@ -1,0 +1,216 @@
+import puppeteer from "puppeteer";
+import { Itinerary } from "@/types";
+
+export async function generateItineraryPDF(
+  itinerary: Itinerary,
+  tripTitle: string,
+  destination: string
+): Promise<Buffer> {
+  let browser;
+
+  try {
+    browser = await puppeteer.launch({
+      headless: "new",
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
+
+    const page = await browser.newPage();
+
+    // Create HTML content for PDF
+    const htmlContent = generateHTMLContent(itinerary, tripTitle, destination);
+
+    await page.setContent(htmlContent, { waitUntil: "networkidle0" });
+
+    const pdfBuffer = await page.pdf({
+      format: "A4",
+      margin: {
+        top: "0.5in",
+        right: "0.5in",
+        bottom: "0.5in",
+        left: "0.5in",
+      },
+      printBackground: true,
+    });
+
+    await browser.close();
+
+    return pdfBuffer;
+  } catch (error) {
+    if (browser) {
+      await browser.close();
+    }
+    throw error;
+  }
+}
+
+function generateHTMLContent(
+  itinerary: Itinerary,
+  tripTitle: string,
+  destination: string
+): string {
+  const daysHTML = itinerary
+    .map(
+      (day) => `
+    <div class="day-plan">
+      <h2>Day ${day.day}: ${day.title}</h2>
+      <div class="activities">
+        ${day.activities
+          .map(
+            (activity) => `
+          <div class="activity">
+            <div class="activity-header">
+              <h3>${activity.place}</h3>
+              <span class="time">${activity.time}</span>
+            </div>
+            <p>${activity.description}</p>
+            <p class="coordinates">📍 ${activity.latitude.toFixed(4)}, ${activity.longitude.toFixed(4)}</p>
+          </div>
+        `
+          )
+          .join("")}
+      </div>
+    </div>
+  `
+    )
+    .join("");
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>${tripTitle}</title>
+      <style>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        
+        body {
+          font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+          line-height: 1.6;
+          color: #333;
+        }
+        
+        .header {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          padding: 40px 20px;
+          text-align: center;
+          page-break-after: avoid;
+        }
+        
+        .header h1 {
+          font-size: 28px;
+          margin-bottom: 10px;
+        }
+        
+        .header p {
+          font-size: 16px;
+          opacity: 0.9;
+        }
+        
+        .trip-info {
+          background: #f8f9fa;
+          padding: 20px;
+          margin: 20px 0;
+          border-radius: 8px;
+          page-break-after: avoid;
+        }
+        
+        .trip-info h2 {
+          color: #667eea;
+          margin-bottom: 10px;
+        }
+        
+        .day-plan {
+          margin: 30px 0;
+          page-break-inside: avoid;
+        }
+        
+        .day-plan h2 {
+          background: #667eea;
+          color: white;
+          padding: 12px 15px;
+          margin-bottom: 15px;
+          border-radius: 4px;
+        }
+        
+        .activities {
+          margin-left: 10px;
+        }
+        
+        .activity {
+          background: white;
+          border-left: 4px solid #667eea;
+          padding: 15px;
+          margin-bottom: 15px;
+          border-radius: 4px;
+          page-break-inside: avoid;
+        }
+        
+        .activity-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 8px;
+        }
+        
+        .activity h3 {
+          color: #333;
+          font-size: 16px;
+        }
+        
+        .time {
+          background: #f0f0f0;
+          color: #667eea;
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 12px;
+          font-weight: bold;
+        }
+        
+        .activity p {
+          font-size: 14px;
+          color: #666;
+          margin-bottom: 5px;
+        }
+        
+        .coordinates {
+          font-size: 12px;
+          color: #999;
+          font-style: italic;
+        }
+        
+        .footer {
+          text-align: center;
+          margin-top: 40px;
+          padding-top: 20px;
+          border-top: 1px solid #ddd;
+          font-size: 12px;
+          color: #999;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>${tripTitle}</h1>
+        <p>📍 ${destination}</p>
+      </div>
+      
+      <div class="trip-info">
+        <h2>Trip Overview</h2>
+        <p><strong>Destination:</strong> ${destination}</p>
+        <p><strong>Duration:</strong> ${itinerary.length} days</p>
+      </div>
+      
+      ${daysHTML}
+      
+      <div class="footer">
+        <p>Generated by AI Itinerary Builder | ${new Date().toLocaleDateString()}</p>
+      </div>
+    </body>
+    </html>
+  `;
+}
