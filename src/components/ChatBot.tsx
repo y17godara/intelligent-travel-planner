@@ -374,8 +374,8 @@ export default function ChatBot() {
               days={generatedData.days || 0}
               title={generatedData.title || ""}
               itinerary={generatedItinerary}
-              budget={generatedData.budget}
-              interests={generatedData.interests}
+              budget={generatedData.budget || "Not specified"}
+              interests={generatedData.interests || []}
               description={`A ${generatedData.days}-day trip to ${generatedData.destination}`}
             />
           )}
