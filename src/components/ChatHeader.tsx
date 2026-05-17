@@ -1,4 +1,4 @@
-import ThemeToggle from "./ThemeToggle";
+// import ThemeToggle from "./ThemeToggle";
 import HeaderMenu from "./HeaderMenu";
 
 export default function ChatHeader() {
@@ -28,7 +28,7 @@ export default function ChatHeader() {
             <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse-glow" />
             Live session
           </div>
-          <ThemeToggle />
+          {/* <ThemeToggle /> */} // --- IGNORE ---
           <HeaderMenu />
         </div>
       </div>
